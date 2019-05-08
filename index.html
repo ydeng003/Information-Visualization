@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<script src="https://d3js.org/d3.v5.min.js"></script>
+<style> 
+  .content {
+  max-width: 1200px;
+  margin: auto;
+}
+
+  body {font-family: calibri;} 
+  .axis {font: 14px calibri;}
+  .label {font: 16px calibri;}
+	.grid .tick {
+    stroke: lightgrey;
+    opacity: 0.1;
+   
+	}
+  
+  h1 {color: steelblue;}
+  
+	.grid path {
+      stroke-width: 0;
+	}
+  .tooltip {
+  position: absolute;
+  width: 150px;
+  height: 60px;
+  background: #f2f2f2;
+  pointer-events: none;
+}
+ 
+.focus text {
+  text-anchor: middle;
+  text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, -1px 0 0 #fff;
+}
+  
+  .line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 2px;
+}
+  
+* {
+  box-sizing: border-box;
+}
+
+/* Create two equal columns that floats next to each other */
+.column1 {
+  float: left;
+  width: 50%;
+}
+
+/* Create three equal columns that floats next to each other */
+ .column2 {
+  float: left;
+  width: 33%;
+}
+/* Clear floats after the columns */
+.row:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+</style>
+
+<body>
+  <div class="content">
+	<h1 align="center", style="font-size:40px;">Seeds matter to NCAA Women's Basketball</h1>
+  <p , style="font-size:20px;" >NCAA women's basketball tournament is an annual college basketball tournament for women. 
+The tournament is split into four regional(X, Y, W, Z) tournaments, each region has teams seeded from 1 to 16. Seeding is very important when filling out brackets. It is likely the only relevant data that a person has on a team. This project shows how seeds matters to the result of NCAA women's basketball. Data is from 1998 to 2019.</p>
+	<h2 align="center", style="font-size:30px;">Top seeds always make the Final Four</h2>
+  <div><svg id="chart1" width="1200" height="500"></svg></div>
+<p>Chart 1: Scatterplot shows which seed made the Final Four for each season from 1998 to 2019. Mouseover each dot to get more information of the team.</p>
+<div class="row">
+  <div class="column1" >
+    <h2 align="center", style="font-size:30px;">No. 1 Seed makes the Final Four the most</h2>
+  </div>
+  <div class="column1" >
+    <h2 align="center", style="font-size:30px;">How far can each seed go?</h2>
+  </div>
+  <div><svg id="chart2" width="1200" height="300"></svg></div>
+  <div class="row">
+  <div class="column1" >
+    <p>Chart 2: Histogram shows the times that each seed made to the Final Four during 1998 to 2019.</p>
+  </div>
+  <div class="column1" >
+    <p >Chart 3: Stacked bar chart shows the percentage of seeds remaining in each round of tournament of all seasons from 1998 to 2019. Sub-bars are ordered by percentage. Mouseover each sub-bar to get more information.</p>
+  </div>
+  <h2 align="center", style="font-size:30px;">Seed Journey (2010-2019)</h2>
+  <div class="row">
+  <div class="column2" >
+    <h2 align="center">Seed 1-4</h2>
+  </div>
+  <div class="column2" >
+    <h2 align="center">Seed 5-9</h2>
+  </div>
+ <div class="column2" >
+    <h2 align="center">Seed 10-16</h2>
+  </div>
+
+
+  <div><svg id="chart3" width="1200" height="300"></svg></div>
+<p>Chart 4: Small multiple shows seed changing history for teams attended this season's(2019) NCAA tournament. Multiple line charts from left to right, repectively show seed journey for top seeds(#1-#4), middle seeds(#5-#9), and low seeds(#10-#16) during the past 10 seasons. When the line is on the x-axis, it means in this season, this team didn't attend NCAA tournament. Mouseover each line to get more information of the team.</p>
+ 
+<script>
+  
+// chart 1
+// create scatterplot based upon code by Professor M Weigle at 
+// https://blockbuilder.org/weiglemc/0d294bbc84a5d4cf174d6a598f594c88
+// add the graph canvas to the body of the webpage
+var svg1 = d3.select("#chart1"), 
+    margin1 = {top: 25, right: 30, bottom: 57, left: 30},
+    width1 = +svg1.attr("width") - margin1.left - margin1.right,
+    height1 = +svg1.attr("height") - margin1.top - margin1.bottom;
+
+
+var g1 = svg1.append("g")
+    .attr("transform", "translate(" + margin1.left + "," + margin1.top + ")");
+
+// add the tooltip area to the webpage
+var tooltip = d3.select("body").append("div")
+    .attr("class", "tooltip")
+    .style("opacity", 100);
+
+//Set color scaler based upon code by pstuffa at
+// https://bl.ocks.org/pstuffa/3393ff2711a53975040077b7453781a9
+
+var colorScale = d3.scaleOrdinal()
+      .range(['#bfb25e','#c6c6c6','#5a7fb3']);
+
+
+// load data
+  d3.csv("final4.csv").then(function(data) {
+
+  
+/* 
+ * value accessor - returns the value to encode for a given data object.
+ * scale - maps value to a visual display encoding, such as a pixel position.
+ * map function - maps from data value to display value
+ */ 
+     
+// setup x - use +d to change string (from CSV) into number format
+    
+
+var xValue = function(d) { return +d["season"];}, // data -> value
+    xScale = d3.scaleLinear().range([0, width1]),     // value -> display
+    
+    xMap = function(d) { return xScale(xValue(d));}; // data -> display
+  
+
+// setup y - use +d to change string into number format
+var yValue = function(d) { return +d["seedno"];}, // data -> value
+    yScale = d3.scaleLinear().range([0, height1]),    // value -> display
+    yMap = function(d) { return yScale(yValue(d));}; // data -> display
+
+// setup circle raduis - use +d to change string into number format
+var dotValue = function(d) { return +d["result"];},
+		dotScale = d3.scaleLinear().range([18, 14]),
+    dotMap = function(d) { return dotScale(dotValue(d));};
+
+  // don't want dots overlapping axis, so add in buffer to data domain
+  xScale.domain([d3.min(data, xValue) -0.9, d3.max(data, xValue)+0.9]);
+    
+  yScale.domain([0.01, d3.max(data, yValue)+7]);
+
+// create grid based upon code by D3 Noob
+//http://www.d3noob.org/2013/01/adding-grid-lines-to-d3js-graph.html
+  //add grid
+      function make_x_axis() {        
+    return d3.axisBottom(xScale)
+         .ticks(21)
+}
+
+function make_y_axis() {        
+    return d3.axisLeft(yScale)
+        .ticks(15)
+}
+ 
+  g1.append("g")         
+        .attr("class", "grid")
+        .attr("transform", "translate(0," + height1 + ")")
+        .call(make_x_axis()
+            .tickSize(-height1 + 21, 0, 0)
+            .tickFormat("")
+        )
+
+    g1.append("g")         
+        .attr("class", "grid")
+        .call(make_y_axis()
+            .tickSize(-width1+45, 0, 0)
+            .tickFormat("")
+        )
+  
+  // x-axis
+   g1.append("g")
+ 		.attr("class", "axis x-axis")
+  	.attr("transform", "translate(0," + height1 + ")") // move axis to bottom of chart
+//  		 .attr("transform", "translate(0," +  + ")") // move axis to bottom of chart
+   	.call(d3.axisBottom(xScale).ticks(21, "#"));
+    
+
+  
+  // x-axis label
+  g1.append("text")
+  	.attr("class", "label")
+   	.attr("x", width1/2)
+    .attr("y", height1+(margin1.bottom*0.7838208))  
+    .style("text-anchor", "middle")
+    .text("Season");
+
+  // y-axis
+  g1.append("g")
+ 		.attr("class", "axis y-axis")
+ 		.call(d3.axisLeft(yScale).ticks(16, "#"));
+  
+  // y-axis label
+  g1.append("text") 
+    .attr("class", "label")
+    .attr("x", 0-margin1.left/2)       // set x position of label
+    .attr("y", 0-margin1.top/2)			// set y position of label
+    .style("text-anchor", "middle")
+    .text("Seed");
+   
+ 
+
+  // draw dots
+  g1.selectAll(".dot")
+      .data(data)
+    .enter().append("circle")
+      .attr("class", "dot")
+      .attr("r",dotMap)
+      .attr("cx", xMap)
+      .attr("cy", yMap)
+  		.style("fill",function(d) { return colorScale(d.result); })
+  		.style("border","white")
+  		// tooltip
+      .on("mouseover", function(d) {
+          tooltip.transition()
+               .duration(200)         // ms delay before appearing
+               .style("opacity", 1); // tooltip appears on mouseover
+          tooltip.html("Team: " + d.teamName + "<br/> " + "Region: " +d.region + "<br/> " + "TeamID: " +d.teamID)   // add conf and passing attemps to tooltip
+               .style("left", (d3.event.pageX + 10) + "px")  // specify x location
+               .style("top", (d3.event.pageY - 28) + "px");  // specify y location
+      })
+      .on("mouseout", function(d) {
+          tooltip.transition()
+               .duration(500)
+               .style("opacity", 0); // disappear on mouseout
+      });
+
+    
+    
+// create color legend based upon code by Professor M Weigle at 
+//http://bl.ocks.org/weiglemc/6185069
+  var legend1 = svg1.selectAll(".legend")
+      .data(colorScale.domain())
+    	.enter().append("g")
+      .attr("class", "legend")
+      .attr("transform", function(d, i) { return "translate(0," + i * 25 + ")"; });
+    
+
+  legend1.append("rect")
+      .attr("x", width1 +30)
+  		.attr("y", height1- 76)
+  		.attr("width", width1 -820)
+  		.attr("height", height1 - 398)
+      .style("fill", colorScale);
+
+  legend1.append("text")
+  	.attr("font-size","18px")
+      .attr("x", width1+18)
+      .attr("y", height1-59)
+      .style("text-anchor", "end")
+      .text(function(d,i) { return d;})
+   
+
+ 
+});
+
+// create histogram based upon code by Professor M Weigle at 
+//  https://blockbuilder.org/weiglemc/ea587543ac03afa4f97be8756219b1df
+ 
+// chart 2
+var svg2 = d3.select("#chart2"), 
+    margin2 = {top: 25, right: 30, bottom: 40, left: 30},
+    width2 = +svg2.attr("width")*.5 - margin2.left - margin2.right,
+    height2 = +svg2.attr("height") - margin2.top - margin2.bottom;
+
+       
+// See https://github.com/d3/d3-scale
+var x2 = d3.scaleBand().rangeRound([0, width2]).padding(0.2),
+    y2 = d3.scaleLinear().rangeRound([height2, 0]); // note that we've reversed the range
+
+// creates new svg <g> space, sets new (0,0) at left, top margin
+var g2 = svg2.append("g")
+    .attr("transform", "translate(" + margin2.left + "," + margin2.top + ")");
+
+  // load data
+  d3.csv("seedtime.csv").then(function(data) {
+
+  // See https://www.dashingd3js.com/d3js-scales
+  // maps domain of x values (letters) to range of positions on x-axis
+  x2.domain(data.map(function(d) { return d.seedno; }));  
+  // maps domain of y values (frequencies 0, max freq) to range of positions on y-axis
+  y2.domain([0, d3.max(data, function(d) { return +d.times+1; })]); // shorthand
+
+  // x-axis
+  g2.append("g")
+    .attr("class", "axis x-axis")
+    .attr("transform", "translate(0," + height2  + ")") // move axis to bottom of chart
+    .call(d3.axisBottom(x2));
+    
+     
+  // x-axis label
+  g2.append("text")
+  	.attr("class", "label")
+   	.attr("x", width2/2)
+    .attr("y", height2+(margin2.bottom*1))  
+    .style("text-anchor", "middle")
+    .text("Seed");
+  
+  // y-axis
+  g2.append("g")
+   .attr("class", "axis y-axis")
+    .call(d3.axisLeft(y2).ticks(10, "#")); // number of ticks and type
+
+  // y-axis label
+  g2.append("text")
+  	.attr("class", "label")
+    .attr("x", 0-margin2.left )       // set x position of label
+    .attr("y", 0-margin2.top/2 )			// set y position of label
+    .style("text-anchor", "start")  // left-justify
+  	.text ("times")
+  
+  // bars
+  g2.selectAll(".bar")
+    .data(data)
+    .enter().append("rect")
+      .attr("class", "bar")
+      .attr("x", function(d) { console.log ("seedno: " + d.seedno + ", x: " + x2(d.seedno)); return x2(d.seedno); })
+      .attr("y", function(d) { console.log ("freq: " + d.times + ", y: " + y2(d.times)); return y2(d.times); })
+      .attr("width", x2.bandwidth()) // width of each band 
+      .attr("height", function(d) { return height2 - y2(d.times); })
+  		.style("fill", "steelblue")  // color of the bars
+  ;
+  //https://alignedleft.com/tutorials/d3/making-a-bar-chart  
+  //append text
+    g2.selectAll(".text")
+   .data(data)
+   .enter()
+   .append("text")
+   . text(function(d) {
+        return d.times;
+   })
+    .attr("x", function(d, i) {
+        return (i+1) * (width2 / 9.2) -30;
+   })
+   .attr("y", function(d) {
+        return height2 - d.times *4.6;
+   });
+});
+  
+// create color legend based upon code by dawaldron at 
+// https://bl.ocks.org/dawaldron/df07e00da18115300f929e8c1a7d4ff7
+   // margins and dimensions
+  var divwidth3 = +d3.select("#chart2").style("width").replace("px",""),
+      margin3 = {top:30, right:20, bottom:25, left:600},
+      width3 = divwidth3 - margin3.right - margin3.left,
+      height3 = divwidth3 * .24 - margin3.top - margin3.bottom,
+      svg3 = d3.select("#chart2").append("svg")
+        .attr("width", width3 + margin3.right + margin3.left)
+        .attr("height", height3 + margin3.top + margin3.bottom),
+      g3 = svg3.append("g")
+        .attr("transform", "translate(" + margin3.left + "," + margin3.top + ")");
+ 
+
+   d3.csv("round.csv").then(function(data){
+
+    // nest the data by season
+    var nestedData = d3.nest()
+      .key(function(d) { return d.round; })
+      .entries(data);
+     
+//     document.write (nestedData)
+
+    // calculate ranks  within season
+    nestedData.forEach(function(d) {
+      d.values.sort(function(a,b) { return b.percentage - a.percentage; });
+      var cumsum = 0;
+      d.values.forEach(function(v, i) {
+        v.percentage = +v.percentage;
+        v.rank = i + 1;
+        cumsum = cumsum + v.percentage;
+        v.cumsum = cumsum;
+        return(v);
+      });
+      return(d);
+    });
+
+    // scale for columns
+    var x3 = d3.scaleBand()
+      .domain(nestedData.map(function(d) { return d.key; }))
+      .range([0, width3])
+      .padding(.2);
+
+    // scale for stacked rectangles
+    var yspacing = 1;
+    var y3 = d3.scaleLinear()
+      .domain([0, d3.max(nestedData, function(d) { return d3.sum(d.values, function(v) { return +v.percentage; }); })])
+      .range([0, height3]);
+
+    // color palette
+//     var color = d3.scaleOrdinal(d3.schemePaired);
+  var color = d3.scaleOrdinal()
+  .range(['steelblue','lightblue','darkorange','gold','green','lightgreen','orangered','lightsalmon','rebeccapurple','thistle','saddlebrown','navajowhite','violet','pink','gray','lightgrey']);
+
+    // create group for each year
+    var pane = g3.selectAll("g.pane")
+      .data(nestedData)
+      .enter()
+      .append("g")
+      .attr("class", "pane")
+      .attr("transform", function(d) { return "translate(" + x3(d.key) + ",0)"; });
+
+    // group for each rectangle
+    var pill = pane.selectAll("g.pill")
+      .data(function(d) { return d.values; })
+      .enter()
+      .append("g")
+      .attr("class", "pill")
+      .attr("transform", function(v) { return "translate(0," + (y3(v.cumsum - v.percentage) + yspacing) + ")"; });
+
+    //rectangles
+    pill.append("rect")
+      .attr("x", 0)
+      .attr("y", 0)
+      .attr("width", x3.bandwidth())
+      .attr("height", function(v) { return y3(v.percentage) - yspacing; })
+      .style("fill", function(v) { return color(v.seed); })
+       // tooltip
+       // create tooltip based upon code by Professor Professor M Weigle at 
+    	 // https://blockbuilder.org/weiglemc/0d294bbc84a5d4cf174d6a598f594c88
+      .on("mouseover", function(d) {
+          tooltip.transition()
+               .duration(200)         // ms delay before appearing
+               .style("opacity", 1); // tooltip appears on mouseover
+          tooltip.html("Round: " + d.round +"<br/> " +"Seed No: " + d.seed + "<br/> " + "Percentage: " + d3.format(",.2%")(d.percentage))   // add conf and passing attemps to tooltip
+               .style("left", (d3.event.pageX + 10) + "px")  // specify x location
+               .style("top", (d3.event.pageY - 28) + "px");  // specify y location
+      })
+      .on("mouseout", function(d) {
+          tooltip.transition()
+               .duration(500)
+               .style("opacity", 0); // disappear on mouseout
+      })   ;
+
+    
+    // unnest function from https://bl.ocks.org/SpaceActuary/723b26e187e6bbc2608f
+    var unnest = function(data, children){
+      var out = [];
+      data.forEach(function(d,i) {
+        d_keys = Object.keys(d);
+        values = d[children];
+        
+        values.forEach(function(v){
+          d_keys.forEach(function(k){
+            if (k != children) { v[k] = d[k]; }
+          });
+          out.push(v);
+        });
+        
+      });
+      return out;
+    };
+
+    // unnest the data 
+    var unnestedData = unnest(nestedData, "values");
+
+    // nest by seed now
+    var renestedData = d3.nest()
+      .key(function(d) { return d.seed; })
+      .entries(unnestedData);
+
+    // get previous round values needed for trapezoid coordinates
+    renestedData.forEach(function(d) {
+      d.values.sort(function(a,b) { return a.round - b.round; });
+      var prevyear = "0";
+      var prevmoney = 0;
+      var prevcumsum = 0;
+      d.values.forEach(function(v, i) {
+        v.seed = d.key;
+
+        v.prevmoney = prevmoney;
+        v.prevcumsum = prevcumsum;
+        v.prevyear = prevyear;
+
+        prevmoney = v.percentage;
+        prevcumsum = v.cumsum;
+        prevyear = v.round;
+        return(v);
+      });
+      return(d);
+    });
+
+    // add the trapezoids
+    var connectorSet = g3.selectAll("g.connector")
+      .data(renestedData)
+      .enter()
+      .append("g")
+      .attr("class", "connector");
+
+    connectorSet.selectAll("polygon")
+      .data(function(d) { return d.values.slice(1); })
+      .enter()
+      .append("polygon")
+      .attr("points", function(v) { return (x3(v.prevyear) + x3.bandwidth()) + "," + (y3(v.prevcumsum - v.prevmoney) + yspacing) + " " +
+                                           (x3(v.round)) + "," + (y3(v.cumsum - v.percentage) + yspacing) + " " +
+                                           (x3(v.round)) + "," + (y3(v.cumsum)) + " " +
+                                           (x3(v.prevyear) + x3.bandwidth()) + "," + (y3(v.prevcumsum)); })
+      .style("fill", function(v) { return color(v.seed); })
+      .style("fill-opacity", .5);
+
+    // add labels using first round's data
+    g3.selectAll("text.label")
+      .data(nestedData[0].values)
+      .enter()
+      .append("text")
+      .attr("class", "label")
+      .attr("x", 12)
+      .attr("y", function(d) { return y3(d.cumsum - d.percentage / 2); })
+      .attr("dy", 8)
+      .style("text-anchor", "end")
+      .style("fill", "black")
+      .text(function(d) { return d.seed; });
+
+      // y-axis label
+  g3.append("text") 
+    .attr("class", "label")
+    .attr("x", width3/2 - 290)
+    .attr("y", height3 - 240)
+    .style("text-anchor", "middle")
+    .text("Seed");
+     
+     
+    // add x axis
+    var xAxis = g3.append("g")  	
+      .call(d3.axisBottom(x3))
+    	.attr("transform", "translate(0," + height3 + ")") // move axis to bottom of chart; 
+    xAxis.selectAll("path, line").remove();
+    xAxis.selectAll("text").style("font-size", "14px");
+  }); 
+
+//small multiple
+//chart 3-1
+// create multiple line charts based upon code by zischwartz
+//  https://gist.github.com/zischwartz/2206230da01250355565e65d4f3d58c4#file-giniline-csv
+//Define Lines  
+  var line4 = d3
+  .line()
+  .curve(d3.curveMonotoneX)
+  .x(function(d) {
+    return x4(d["date"]);
+  })
+  .y(function(d) {
+    return y4(d["concentration"]);
+  });
+//Define data parse  
+  var parseDate = d3.timeParse("%Y");
+  
+//Define color
+  var color = d3.scaleOrdinal().range(d3.schemePaired);
+  
+// Define margins
+ 
+  var svg4 = d3.select("#chart3"), 
+    margin4 = {top: 25, right: 830, bottom: 40, left: 30},
+    width4 = +svg4.attr("width") - margin4.left - margin4.right,
+    height4 = +svg4.attr("height") - margin4.top - margin4.bottom;
+
+
+// creates new svg <g> space, sets new (0,0) at left, top margin
+var g4 = svg4.append("g")
+    .attr("transform", "translate(" + margin4.left + "," + margin4.top + ")");
+
+
+// Define scales
+var x4 = d3.scaleTime().range([0, width4]);
+var y4 = d3.scaleLinear().range([0, height4 ]);
+
+
+// Read in data
+d3.csv("t1.csv").then(function(data) {
+  // Set the color domain equal to the three product categories
+  var productCategories = d3.keys(data[0]).filter(function(key) {
+    return key !== "Season";
+  });
+  color.domain(productCategories);
+  // console.log(JSON.stringify(data, null, 2)) // to view the structure
+  // Format the data field
+  data.forEach(function(d) {
+    d["Season"] = parseDate(d["Season"]);
+  });
+  // concentrations = An array of three objects, each of which contains an array of objects
+  var concentrations = productCategories.map(function(category) {
+    return {
+      category: category,
+      datapoints: data.map(function(d) {
+        return { date: d["Season"], concentration: +d[category] };
+      })
+    };
+  });
+  // console.log(JSON.stringify(concentrations, null, 2)) // to view the structure
+  // Set the domain of the axes
+  x4.domain(
+    d3.extent(data, function(d) {
+      return d["Season"];
+    })
+  );
+  y4.domain([0.5, 16.99]);
+  // Place the axes on the chart
+
+  g4.append("g")
+ 		.attr("class", "axis x-axis")
+  	.attr("transform", "translate(0," + height4 + ")") 
+   	.call(d3.axisBottom(x4).ticks(7));
+ 
+  
+    // x-axis label
+  g4.append("text")
+  	.attr("class", "label")
+   	.attr("x", width4/2)
+    .attr("y", height4+(margin4.bottom*0.971937792))  
+    .style("text-anchor", "middle")
+    .text("Season");
+  
+  
+  
+   // y-axis
+  g4.append("g")
+ 		.attr("class", "axis y-axis")
+ 		.call(d3.axisLeft(y4).ticks(16));
+  
+  
+    // y-axis label
+  g4.append("text") 
+    .attr("class", "label")
+    .attr("x", 0-margin4.left/2)       // set x position of label
+    .attr("y", 0-margin4.top/2)			// set y position of label
+    .style("text-anchor", "middle")
+    .text("Seed");
+  
+  var products = g4
+    .selectAll(".category")
+    .data(concentrations)
+    .enter()
+    .append("g")
+    .attr("class", "category");
+  products
+    .append("path")
+    .attr("class", "line")
+    .attr("d", function(d) {
+      return line4(d.datapoints);
+    })
+    .style("stroke", function(d) {
+      return color(d.category);
+    })
+  // create tooltip based upon code by Professor Professor M Weigle at 
+  // https://blockbuilder.org/weiglemc/0d294bbc84a5d4cf174d6a598f594c88
+  .on("mouseover", function(d) {
+          tooltip.transition()
+               .duration(200)         // ms delay before appearing
+               .style("opacity", 1); // tooltip appears on mouseover
+          tooltip.html( "<br/> " +"Team: " + d.category )   // add conf and passing attemps to tooltip
+               .style("left", (d3.event.pageX + 17) + "px")  // specify x location
+               .style("top", (d3.event.pageY - 28) + "px");  // specify y location
+      })
+      .on("mouseout", function(d) {
+          tooltip.transition()
+               .duration(500)
+               .style("opacity", 0); // disappear on mouseout
+      })   ;
+  
+   function mouseover(d) {
+    d3.select(this)
+      .style("stroke-width", 5)
+   }
+  // create color legend based upon code by Professor M Weigle at 
+//http://bl.ocks.org/weiglemc/6185069
+//   var legend4 = g4.selectAll(".legend")
+//       .data(color.domain())
+//     	.enter().append("g")
+//       .attr("class", "legend")
+//       .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+    
+
+//   legend4.append("rect")
+//       .attr("x", width4-3 )
+//   		.attr("y", height4-81)
+//   		.attr("width", width4 -755)
+//   		.attr("height", height4-235)
+//       .style("fill", color);
+
+//   legend4.append("text")
+//   	.attr("font-size","15px")
+//       .attr("x", width4 -16 )
+//       .attr("y", height4 -70)
+//       .style("text-anchor", "end")
+//       .text(function(d,i) { return d;})
+   
+});
+
+//chart 3-2
+//  https://gist.github.com/zischwartz/2206230da01250355565e65d4f3d58c4#file-giniline-csv
+// Define margins
+// Define scales
+var x5 = d3.scaleTime().range([0, width5]);
+var y5 = d3.scaleLinear().range([0, height5 ]);
+// // var color = d3.scaleOrdinal().range(d3.schemePaired);
+// // Define lines
+var line5 = d3
+  .line()
+  .curve(d3.curveMonotoneX)
+  .x(function(d) {
+    return x5(d["date"]);
+  })
+  .y(function(d) {
+    return y5(d["concentration"]);
+  });
+   // Define margins
+ 
+  var svg5 = d3.select("#chart3"), 
+    margin5 = {top: 25, right: 430, bottom: 40, left: 430},
+    width5 = +svg5.attr("width") - margin5.left - margin5.right,
+    height5 = +svg5.attr("height") - margin5.top - margin5.bottom;
+
+
+// creates new svg <g> space, sets new (0,0) at left, top margin
+var g5 = svg5.append("g")
+    .attr("transform", "translate(" + margin5.left + "," + margin5.top + ")");
+
+// Define scales
+var x5 = d3.scaleTime().range([0, width5]);
+var y5 = d3.scaleLinear().range([0, height5 ]);
+
+// Read in data
+d3.csv("t2.csv").then(function(data) {
+  // Set the color domain equal to the three product categories
+  var productCategories = d3.keys(data[0]).filter(function(key) {
+    return key !== "Season";
+  });
+  color.domain(productCategories);
+  // console.log(JSON.stringify(data, null, 2)) // to view the structure
+  // Format the data field
+  data.forEach(function(d) {
+    d["Season"] = parseDate(d["Season"]);
+  });
+  // concentrations = An array of three objects, each of which contains an array of objects
+  var concentrations = productCategories.map(function(category) {
+    return {
+      category: category,
+      datapoints: data.map(function(d) {
+        return { date: d["Season"], concentration: +d[category] };
+      })
+    };
+  });
+  // console.log(JSON.stringify(concentrations, null, 2)) // to view the structure
+  // Set the domain of the axes
+  x5.domain(
+    d3.extent(data, function(d) {
+      return d["Season"];
+    })
+  );
+  y5.domain([0.5, 16.99]);
+  // Place the axes on the chart
+
+  g5.append("g")
+ 		.attr("class", "axis x-axis")
+  	.attr("transform", "translate(0," + height5 + ")") 
+   	.call(d3.axisBottom(x5).ticks(7));
+ 
+  
+    // x-axis label
+  g5.append("text")
+  	.attr("class", "label")
+   	.attr("x", width5/2)
+    .attr("y", height5+(margin5.bottom*0.971937792))  
+    .style("text-anchor", "middle")
+    .text("Season");
+  
+  
+  
+   // y-axis
+  g5.append("g")
+ 		.attr("class", "axis y-axis")
+ 		.call(d3.axisLeft(y5).ticks(16));
+  
+  
+    // y-axis label
+  g5.append("text") 
+    .attr("class", "label")
+    .attr("x", margin5.left-450)       // set x position of label
+    .attr("y", 0-margin5.top/2)			// set y position of label
+    .style("text-anchor", "middle")
+    .text("Seed");
+  
+  var products = g5
+    .selectAll(".category")
+    .data(concentrations)
+    .enter()
+    .append("g")
+    .attr("class", "category");
+  products
+    .append("path")
+    .attr("class", "line")
+    .attr("d", function(d) {
+      return line5(d.datapoints);
+    })
+    .style("stroke", function(d) {
+      return color(d.category);
+    })
+  // create tooltip based upon code by Professor Professor M Weigle at 
+  // https://blockbuilder.org/weiglemc/0d294bbc84a5d4cf174d6a598f594c88
+  .on("mouseover", function(d) {
+          tooltip.transition()
+               .duration(200)         // ms delay before appearing
+               .style("opacity", 1); // tooltip appears on mouseover
+          tooltip.html( "<br/> " +"Team: " + d.category )   // add conf and passing attemps to tooltip
+               .style("left", (d3.event.pageX + 17) + "px")  // specify x location
+               .style("top", (d3.event.pageY - 28) + "px");  // specify y location
+      })
+      .on("mouseout", function(d) {
+          tooltip.transition()
+               .duration(500)
+               .style("opacity", 0); // disappear on mouseout
+      })   ;
+  
+   function mouseover(d) {
+    d3.select(this)
+      .style("stroke-width", 5)
+   }
+   
+});
+  
+//chart 3-3
+//  https://gist.github.com/zischwartz/2206230da01250355565e65d4f3d58c4#file-giniline-csv
+// Define margins
+// Define scales
+var x6 = d3.scaleTime().range([0, width6]);
+var y6 = d3.scaleLinear().range([0, height6 ]);
+// // var color = d3.scaleOrdinal().range(d3.schemePaired);
+// // Define lines
+var line6 = d3
+  .line()
+  .curve(d3.curveMonotoneX)
+  .x(function(d) {
+    return x6(d["date"]);
+  })
+  .y(function(d) {
+    return y6(d["concentration"]);
+  });
+   // Define margins
+ 
+  var svg6 = d3.select("#chart3"), 
+    margin6 = {top: 25, right: 30, bottom: 40, left: 830},
+    width6 = +svg6.attr("width") - margin6.left - margin6.right,
+    height6 = +svg6.attr("height") - margin6.top - margin6.bottom;
+
+
+// creates new svg <g> space, sets new (0,0) at left, top margin
+var g6 = svg6.append("g")
+    .attr("transform", "translate(" + margin6.left + "," + margin6.top + ")");
+  
+
+// Define scales
+var x6 = d3.scaleTime().range([0, width6]);
+var y6 = d3.scaleLinear().range([0, height6 ]);
+  
+
+// Read in data
+d3.csv("t3.csv").then(function(data) {
+  // Set the color domain equal to the three product categories
+  var productCategories = d3.keys(data[0]).filter(function(key) {
+    return key !== "Season";
+  });
+  color.domain(productCategories);
+  // console.log(JSON.stringify(data, null, 2)) // to view the structure
+  // Format the data field
+  data.forEach(function(d) {
+    d["Season"] = parseDate(d["Season"]);
+  });
+  // concentrations = An array of three objects, each of which contains an array of objects
+  var concentrations = productCategories.map(function(category) {
+    return {
+      category: category,
+      datapoints: data.map(function(d) {
+        return { date: d["Season"], concentration: +d[category] };
+      })
+    };
+  });
+  // console.log(JSON.stringify(concentrations, null, 2)) // to view the structure
+  // Set the domain of the axes
+  x6.domain(
+    d3.extent(data, function(d) {
+      return d["Season"];
+    })
+  );
+  y6.domain([0.5, 16.99]);
+  // Place the axes on the chart
+
+  g6.append("g")
+ 		.attr("class", "axis x-axis")
+  	.attr("transform", "translate(0," + height5 + ")") 
+   	.call(d3.axisBottom(x6).ticks(7));
+ 
+  
+    // x-axis label
+  g6.append("text")
+  	.attr("class", "label")
+   	.attr("x", width6/2)
+    .attr("y", height6+(margin6.bottom*0.971937792))  
+    .style("text-anchor", "middle")
+    .text("Season");
+  
+  
+  
+   // y-axis
+  g6.append("g")
+ 		.attr("class", "axis y-axis")
+ 		.call(d3.axisLeft(y6).ticks(16));
+  
+  
+    // y-axis label
+  g6.append("text") 
+    .attr("class", "label")
+    .attr("x", margin6.left-850)       // set x position of label
+    .attr("y", 0-margin6.top/2)			// set y position of label
+    .style("text-anchor", "middle")
+    .text("Seed");
+  
+  var products = g6
+    .selectAll(".category")
+    .data(concentrations)
+    .enter()
+    .append("g")
+    .attr("class", "category");
+  products
+    .append("path")
+    .attr("class", "line")
+    .attr("d", function(d) {
+      return line6(d.datapoints);
+    })
+    .style("stroke", function(d) {
+      return color(d.category);
+    })
+  // create tooltip based upon code by Professor Professor M Weigle at 
+  // https://blockbuilder.org/weiglemc/0d294bbc84a5d4cf174d6a598f594c88
+  .on("mouseover", function(d) {
+          tooltip.transition()
+               .duration(200)         // ms delay before appearing
+               .style("opacity", 1); // tooltip appears on mouseover
+          tooltip.html( "<br/> " +"Team: " + d.category )   // add conf and passing attemps to tooltip
+               .style("left", (d3.event.pageX + 17) + "px")  // specify x location
+               .style("top", (d3.event.pageY - 28) + "px");  // specify y location
+      })
+      .on("mouseout", function(d) {
+          tooltip.transition()
+               .duration(500)
+               .style("opacity", 0); // disappear on mouseout
+      })   ;
+  
+   function mouseover(d) {
+    d3.select(this)
+      .style("stroke-width", 5)
+   }
+   
+});
+  
+</script>
+</div> 
+</body>
+
+</html>
